@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "294783853629",
+    "project_id": "payroll-6b3ff",
+    "storage_bucket": "payroll-6b3ff.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:294783853629:android:3b4f9d6171fb1546d87654",
+        "android_client_info": {
+          "package_name": "com.example.payroll"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDWj5dJDbAj1MGBhHXPusf0Si4hDyrmcy4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
