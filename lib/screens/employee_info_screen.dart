@@ -137,12 +137,6 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                   _buildInfoField('Chức vụ:', employeeInfo['position']!),
                   SizedBox(height: 12),
 
-                  // Trường trống cuối cung
-                  _buildInfoField('', ''),
-
-                  SizedBox(height: 20),
-
-
                 ],
               ),
             ),
