@@ -15,6 +15,7 @@ import 'screens/department_management_screen.dart';
 import 'screens/employee_list_screen.dart';
 import 'screens/leave_approval_screen.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
         '/department_management': (context) => const DepartmentManagementScreen(),
         '/employee_list': (context) => const EmployeeListScreen(),
         '/leave_approval': (context) => const LeaveApprovalScreen(),
+
       }
     );
   }
