@@ -130,7 +130,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
       builder: (BuildContext context) {
         String name = '';
         String email = '';
-        String role = 'Employee';
+        String role = 'employee';
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
@@ -151,7 +151,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   DropdownButtonFormField<String>(
                     value: role,
                     decoration: InputDecoration(labelText: 'Vai trò'),
-                    items: ['ADMIN', 'Manager', 'Employee']
+                    items: ['admin', 'manager', 'employee']
                         .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                         .toList(),
                     onChanged: (value) => setState(() {

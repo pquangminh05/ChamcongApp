@@ -110,7 +110,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                   Expanded(
                     child: StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
-                          .collection('employees')
+                          .collection('users')
+                          .where('role', isEqualTo: 'employee')
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -194,15 +195,15 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
             ),
             SizedBox(height: 4),
             Text(
-              'Vị trí: ${employee.position}',
+              'Vị trí: ${employee.role}',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[700],
               ),
             ),
-            if (employee.department.isNotEmpty)
+            if (employee.email.isNotEmpty)
               Text(
-                'Phòng ban: ${employee.department}',
+                'Email: ${employee.email}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[700],
@@ -224,87 +225,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   }
 
   void _addNewEmployee() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        String name = '';
-        String position = '';
-        String department = '';
-        String phone = '';
-        String email = '';
-        String employeeId = '';
-
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Thêm nhân viên mới'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      decoration: InputDecoration(labelText: 'Tên nhân viên'),
-                      onChanged: (value) => name = value,
-                    ),
-                    SizedBox(height: 12),
-                    TextField(
-                      decoration: InputDecoration(labelText: 'Mã nhân viên'),
-                      onChanged: (value) => employeeId = value,
-                    ),
-                    SizedBox(height: 12),
-                    TextField(
-                      decoration: InputDecoration(labelText: 'Vị trí'),
-                      onChanged: (value) => position = value,
-                    ),
-                    SizedBox(height: 12),
-                    TextField(
-                      decoration: InputDecoration(labelText: 'Phòng ban'),
-                      onChanged: (value) => department = value,
-                    ),
-                    SizedBox(height: 12),
-                    TextField(
-                      decoration: InputDecoration(labelText: 'Số điện thoại'),
-                      onChanged: (value) => phone = value,
-                    ),
-                    SizedBox(height: 12),
-                    TextField(
-                      decoration: InputDecoration(labelText: 'Email'),
-                      onChanged: (value) => email = value,
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Hủy'),
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (name.isNotEmpty && employeeId.isNotEmpty) {
-                      await FirebaseFirestore.instance.collection('employees').add({
-                        'name': name,
-                        'employeeId': employeeId,
-                        'position': position,
-                        'department': department,
-                        'phone': phone,
-                        'email': email,
-                        'createdAt': FieldValue.serverTimestamp(),
-                      });
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Đã thêm nhân viên mới!')),
-                      );
-                    }
-                  },
-                  child: Text('Thêm'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+    // Chuyển hướng đến trang quản lý tài khoản để thêm user mới
+    Navigator.pushNamed(context, '/user_management');
   }
 }
 
@@ -434,26 +356,16 @@ class EmployeeDetailScreen extends StatelessWidget {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Vị trí: ${employee.position}',
+                            'Vị trí: ${employee.role}',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[700],
                             ),
                           ),
-                          if (employee.employeeId.isNotEmpty) ...[
+                          if (employee.email.isNotEmpty) ...[
                             SizedBox(height: 4),
                             Text(
-                              'ID: ${employee.employeeId}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[700],
-                              ),
-                            ),
-                          ],
-                          if (employee.department.isNotEmpty) ...[
-                            SizedBox(height: 4),
-                            Text(
-                              'Phòng ban: ${employee.department}',
+                              'Email: ${employee.email}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[700],
@@ -563,20 +475,14 @@ class EmployeeDetailScreen extends StatelessWidget {
 class EmployeeInfo {
   final String id;
   final String name;
-  final String position;
-  final String department;
-  final String phone;
+  final String role;
   final String email;
-  final String employeeId;
 
   EmployeeInfo({
     required this.id,
     required this.name,
-    required this.position,
-    required this.department,
-    required this.phone,
+    required this.role,
     required this.email,
-    required this.employeeId,
   });
 
   factory EmployeeInfo.fromFirestore(DocumentSnapshot doc) {
@@ -584,11 +490,8 @@ class EmployeeInfo {
     return EmployeeInfo(
       id: doc.id,
       name: data['name'] ?? '',
-      position: data['position'] ?? '',
-      department: data['department'] ?? '',
-      phone: data['phone'] ?? '',
+      role: data['role'] ?? '',
       email: data['email'] ?? '',
-      employeeId: data['employeeId'] ?? '',
     );
   }
 }
