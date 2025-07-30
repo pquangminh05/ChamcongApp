@@ -389,7 +389,7 @@ class EmployeeDetailScreen extends StatelessWidget {
                         children: [
                           _buildDetailRow('Ngày', '25/08/2025'),
                           _buildDetailRow('Ca sáng', 'Có mặt'),
-                          _buildDetailRow('Ca chiều', 'Vắng mặt'),
+                          _buildDetailRow('Ca chiều', 'Có mặt'),
                         ],
                       ),
                     ),

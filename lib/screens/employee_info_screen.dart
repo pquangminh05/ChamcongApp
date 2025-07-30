@@ -142,29 +142,7 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
 
                   SizedBox(height: 20),
 
-                  // Nút chỉnh sửa (tuỳ chọn)
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _editEmployeeInfo,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[700],
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      child: Text(
-                        'Chỉnh sửa thông tin',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
+
                 ],
               ),
             ),
@@ -238,24 +216,7 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
     );
   }
 
-  void _editEmployeeInfo() {
-    // Hiển thị dialog hoặc navigate đến màn hình chỉnh sửa
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Chỉnh sửa thông tin'),
-          content: Text('Tính năng chỉnh sửa thông tin nhân viên sẽ được phát triển.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text('Đóng'),
-            ),
-          ],
-        );
-      },
-    );
-  }
+
 
   String _getDisplayName(User? user) {
     if (user == null) return 'Người dùng';

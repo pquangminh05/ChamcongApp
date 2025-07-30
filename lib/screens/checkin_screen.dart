@@ -50,6 +50,13 @@ class _CheckInScreenState extends State<CheckInScreen> {
         'ip': _ip,
         'timestamp': FieldValue.serverTimestamp(),
       });
+      // Add notification to Firestore
+      await FirebaseFirestore.instance.collection('notifications').add({
+        'uid': user?.uid,
+        'type': 'checkin',
+        'message': 'Chấm công thành công!',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
       setState(() {
         _status = 'Chấm công thành công!';
       });
