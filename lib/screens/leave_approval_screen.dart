@@ -4,23 +4,40 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class LeaveApprovalScreen extends StatelessWidget {
   const LeaveApprovalScreen({Key? key}) : super(key: key);
 
-  // ✅ Cập nhật trạng thái và thêm thông báo
-  Future<void> _updateStatus(String docId, String status, String userId) async {
+  Future<void> _updateStatus(
+      String docId, String status, String userId, Timestamp startDate) async {
+    // Cập nhật trạng thái đơn nghỉ
     await FirebaseFirestore.instance
         .collection('leave_requests')
         .doc(docId)
         .update({'status': status});
 
-    String message = (status == 'approved')
-        ? 'Đơn xin nghỉ của bạn đã được chấp nhận.'
-        : 'Đơn xin nghỉ của bạn đã bị từ chối.';
+    // Định dạng ngày dd/mm/yy
+    final date = startDate.toDate();
+    final formattedDate =
+        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year.toString().substring(2)}';
 
+    // Tạo nội dung thông báo
+    String message = (status == 'approved')
+        ? 'Đơn xin nghỉ cho ngày $formattedDate đã được chấp nhận.'
+        : 'Đơn xin nghỉ cho ngày $formattedDate đã bị từ chối.';
+
+    // Gửi thông báo
     await FirebaseFirestore.instance.collection('notifications').add({
       'userId': userId,
       'title': 'Trạng thái đơn nghỉ',
       'content': message,
       'timestamp': FieldValue.serverTimestamp(),
     });
+  }
+
+  Future<String> _getUserName(String? userId) async {
+    if (userId == null) return 'Không rõ tên';
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .get();
+    return doc.data()?['name'] ?? 'Không rõ tên';
   }
 
   @override
@@ -51,47 +68,58 @@ class LeaveApprovalScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final data = requests[index].data() as Map<String, dynamic>;
               final docId = requests[index].id;
-              final userId = data['userId']; // 👈 Phải có trong leave_requests
 
-              // Xử lý thời gian an toàn
               String formatDate(Timestamp? timestamp) {
                 if (timestamp == null) return 'Không rõ';
                 final date = timestamp.toDate();
                 return '${date.day}/${date.month}/${date.year}';
               }
 
-              return Card(
-                margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: ListTile(
-                  title: Text(data['displayName'] ?? 'Không rõ tên'),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 4),
-                      Text('Lý do: ${data['reason'] ?? 'Không rõ'}'),
-                      Text('Từ: ${formatDate(data['startDate'])}'),
-                      Text('Đến: ${formatDate(data['endDate'])}'),
-                      Text('Trạng thái: ${data['status'] ?? 'pending'}'),
-                    ],
-                  ),
-                  trailing: (data['status'] == 'pending')
-                      ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(Icons.check, color: Colors.green),
-                        onPressed: () =>
-                            _updateStatus(docId, 'approved', userId),
+              return FutureBuilder<String>(
+                future: _getUserName(data['userId']),
+                builder: (context, snapshotName) {
+                  return Card(
+                    margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: ListTile(
+                      title: Text(snapshotName.data ?? 'Đang tải tên...'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 4),
+                          Text('Lý do: ${data['reason'] ?? 'Không rõ'}'),
+                          Text('Từ: ${formatDate(data['startDate'])}'),
+                          Text('Đến: ${formatDate(data['endDate'])}'),
+                          Text('Trạng thái: ${data['status'] ?? 'pending'}'),
+                        ],
                       ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: Colors.red),
-                        onPressed: () =>
-                            _updateStatus(docId, 'rejected', userId),
-                      ),
-                    ],
-                  )
-                      : null,
-                ),
+                      trailing: (data['status'] == 'pending')
+                          ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.check, color: Colors.green),
+                            onPressed: () => _updateStatus(
+                              docId,
+                              'approved',
+                              data['userId'],
+                              data['startDate'],
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.close, color: Colors.red),
+                            onPressed: () => _updateStatus(
+                              docId,
+                              'rejected',
+                              data['userId'],
+                              data['startDate'],
+                            ),
+                          ),
+                        ],
+                      )
+                          : null,
+                    ),
+                  );
+                },
               );
             },
           );

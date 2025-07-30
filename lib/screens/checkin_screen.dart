@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:intl/intl.dart';
 
 class CheckInScreen extends StatefulWidget {
   const CheckInScreen({Key? key}) : super(key: key);
@@ -14,13 +15,16 @@ class _CheckInScreenState extends State<CheckInScreen> {
   String? _ip;
   String? _status;
   bool _loading = false;
+  bool _hasCheckedIn = false;
+  bool _hasCheckedOut = false;
 
-  final String companyIpPrefix = '192.168.1.';
+  final String companyIpPrefix = '172.16.1.';
 
   @override
   void initState() {
     super.initState();
     _getIp();
+    _checkTodayStatus();
   }
 
   Future<void> _getIp() async {
@@ -31,34 +35,91 @@ class _CheckInScreenState extends State<CheckInScreen> {
     });
   }
 
-  Future<void> _checkIn() async {
+  Future<void> _checkTodayStatus() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    final query = await FirebaseFirestore.instance
+        .collection('checkins')
+        .where('uid', isEqualTo: user.uid)
+        .where('date', isEqualTo: today)
+        .get();
+
+    for (var doc in query.docs) {
+      final data = doc.data();
+      if (data['type'] == 'checkin') {
+        _hasCheckedIn = true;
+      } else if (data['type'] == 'checkout') {
+        _hasCheckedOut = true;
+      }
+    }
+
+    setState(() {});
+  }
+
+  Future<void> _submitCheck(String type) async {
     if (_ip == null || !_ip!.startsWith(companyIpPrefix)) {
       setState(() {
         _status = 'Bạn không kết nối đúng wifi công ty!';
       });
       return;
     }
+
+    final user = FirebaseAuth.instance.currentUser;
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+    if (type == 'checkin' && _hasCheckedIn) {
+      setState(() => _status = 'Bạn đã chấm công Check In hôm nay!');
+      return;
+    }
+
+    if (type == 'checkout') {
+      if (!_hasCheckedIn) {
+        setState(() => _status = 'Bạn phải Check In trước khi Check Out!');
+        return;
+      }
+      if (_hasCheckedOut) {
+        setState(() => _status = 'Bạn đã Check Out hôm nay!');
+        return;
+      }
+    }
+
     setState(() {
       _loading = true;
       _status = null;
     });
+
     try {
-      final user = FirebaseAuth.instance.currentUser;
       await FirebaseFirestore.instance.collection('checkins').add({
         'uid': user?.uid,
         'email': user?.email,
         'ip': _ip,
         'timestamp': FieldValue.serverTimestamp(),
+        'type': type,
+        'date': today,
       });
-      // Add notification to Firestore
+
+      // Thêm thông báo vào Firestore
+      final message = (type == 'checkin')
+          ? 'Thực hiện chấm công cho ngày $today thành công'
+          : 'Thực hiện check out cho ngày $today thành công';
+
       await FirebaseFirestore.instance.collection('notifications').add({
         'uid': user?.uid,
         'type': 'checkin',
-        'message': 'Chấm công thành công!',
+        'message': message,
         'timestamp': FieldValue.serverTimestamp(),
       });
+
       setState(() {
-        _status = 'Chấm công thành công!';
+        _status = 'Chấm công $type thành công!';
+        if (type == 'checkin') {
+          _hasCheckedIn = true;
+        } else {
+          _hasCheckedOut = true;
+        }
       });
     } catch (e) {
       setState(() {
@@ -81,17 +142,33 @@ class _CheckInScreenState extends State<CheckInScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Địa chỉ IP hiện tại:', style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
+              const Text('Địa chỉ IP hiện tại:',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
               Text(_ip ?? 'Đang lấy địa chỉ IP...'),
-              SizedBox(height: 24),
+              const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _loading ? null : _checkIn,
-                child: _loading ? CircularProgressIndicator(color: Colors.white) : Text('Chấm công'),
+                onPressed: (_loading || _hasCheckedIn) ? null : () => _submitCheck('checkin'),
+                child: _loading && !_hasCheckedIn
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Check In'),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: (_loading || !_hasCheckedIn || _hasCheckedOut)
+                    ? null
+                    : () => _submitCheck('checkout'),
+                child: _loading && _hasCheckedIn && !_hasCheckedOut
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Check Out'),
               ),
               if (_status != null) ...[
-                SizedBox(height: 16),
-                Text(_status!, style: TextStyle(color: _status == 'Chấm công thành công!' ? Colors.green : Colors.red)),
+                const SizedBox(height: 16),
+                Text(_status!,
+                    style: TextStyle(
+                        color: _status!.contains('thành công')
+                            ? Colors.green
+                            : Colors.red)),
               ],
             ],
           ),
@@ -100,4 +177,3 @@ class _CheckInScreenState extends State<CheckInScreen> {
     );
   }
 }
-
