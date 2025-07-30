@@ -13,6 +13,7 @@ import 'screens/user_management_screen.dart';
 import 'screens/manager_screen.dart';
 import 'screens/department_management_screen.dart';
 import 'screens/employee_list_screen.dart';
+import 'screens/leave_approval_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,7 @@ class MyApp extends StatelessWidget {
         '/manager': (context) => const ManagerScreen(),
         '/department_management': (context) => const DepartmentManagementScreen(),
         '/employee_list': (context) => const EmployeeListScreen(),
+        '/leave_approval': (context) => const LeaveApprovalScreen(),
       }
     );
   }
