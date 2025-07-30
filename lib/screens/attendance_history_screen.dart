@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AttendanceHistoryScreen extends StatefulWidget {
   const AttendanceHistoryScreen({Key? key}) : super(key: key);
@@ -9,35 +10,6 @@ class AttendanceHistoryScreen extends StatefulWidget {
 }
 
 class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
-  // Dữ liệu mẫu lịch sử chấm công
-  final List<AttendanceRecord> attendanceHistory = [
-    AttendanceRecord(
-      date: '26/6/2025',
-      checkIn: '8h00',
-      checkOut: '16h00',
-    ),
-    AttendanceRecord(
-      date: '25/6/2025',
-      checkIn: '8h15',
-      checkOut: '16h30',
-    ),
-    AttendanceRecord(
-      date: '24/6/2025',
-      checkIn: '7h45',
-      checkOut: '16h00',
-    ),
-    AttendanceRecord(
-      date: '23/6/2025',
-      checkIn: '8h00',
-      checkOut: '16h15',
-    ),
-    AttendanceRecord(
-      date: '22/6/2025',
-      checkIn: '8h30',
-      checkOut: '16h45',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -96,8 +68,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         child: Column(
           children: [
             SizedBox(height: 20),
-
-            // Container chính chứa lịch sử chấm công
             Container(
               margin: EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
@@ -114,7 +84,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
                   Padding(
                     padding: EdgeInsets.all(20),
                     child: Text(
@@ -126,35 +95,52 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                       ),
                     ),
                   ),
-
-                  // Danh sách lịch sử
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: attendanceHistory.length,
-                    separatorBuilder: (context, index) => Divider(
-                      height: 1,
-                      color: Colors.grey[300],
-                      indent: 20,
-                      endIndent: 20,
-                    ),
-                    itemBuilder: (context, index) {
-                      final record = attendanceHistory[index];
-                      return _buildAttendanceItem(record);
+                  StreamBuilder<QuerySnapshot>(
+                    stream: FirebaseFirestore.instance
+                        .collection('attendance_records')
+                        .where('userId', isEqualTo: user?.uid)
+                        .orderBy('date', descending: true)
+                        .snapshots(),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+                      final docs = snapshot.data!.docs;
+                      if (docs.isEmpty) {
+                        return Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Text('Không có dữ liệu chấm công.'),
+                        );
+                      }
+                      return ListView.separated(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: docs.length,
+                        separatorBuilder: (context, index) => Divider(
+                          height: 1,
+                          color: Colors.grey[300],
+                          indent: 20,
+                          endIndent: 20,
+                        ),
+                        itemBuilder: (context, index) {
+                          final data = docs[index].data() as Map<String, dynamic>;
+                          return _buildAttendanceItem(
+                            AttendanceRecord(
+                              date: data['date'] ?? '',
+                              checkIn: data['checkIn'] ?? '',
+                              checkOut: data['checkOut'] ?? '',
+                            ),
+                          );
+                        },
+                      );
                     },
                   ),
-
-                  // Thêm các ô trống để giống với hình
                   ...List.generate(3, (index) => _buildEmptyItem()),
-
                   SizedBox(height: 20),
                 ],
               ),
             ),
-
             SizedBox(height: 100),
-
-            // FAB Button ở cuối (giống HomeScreen)
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
@@ -178,7 +164,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                 ),
               ),
             ),
-
             SizedBox(height: 50),
           ],
         ),
@@ -230,13 +215,12 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
           top: BorderSide(color: Colors.grey[300]!, width: 1),
         ),
       ),
-      child: SizedBox(), // Empty container
+      child: SizedBox(),
     );
   }
 
   String _getDisplayName(User? user) {
     if (user == null) return 'Người dùng';
-
     if (user.displayName != null && user.displayName!.isNotEmpty) {
       String fullName = user.displayName!;
       if (fullName.length > 10) {
@@ -244,7 +228,6 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       }
       return fullName;
     }
-
     if (user.email != null && user.email!.isNotEmpty) {
       String emailName = user.email!.split('@')[0];
       if (emailName.isNotEmpty) {
@@ -255,12 +238,10 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         return displayName;
       }
     }
-
     return 'Người dùng';
   }
 }
 
-// Model class cho dữ liệu chấm công
 class AttendanceRecord {
   final String date;
   final String checkIn;

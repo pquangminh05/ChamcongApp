@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LeaveRequestScreen extends StatefulWidget {
   const LeaveRequestScreen({Key? key}) : super(key: key);
@@ -77,8 +78,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         child: Column(
           children: [
             SizedBox(height: 20),
-
-            // Form đơn xin nghỉ
             Container(
               margin: EdgeInsets.symmetric(horizontal: 16),
               padding: EdgeInsets.all(20),
@@ -96,7 +95,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Tiêu đề
                   Text(
                     'Xin nghỉ',
                     style: TextStyle(
@@ -106,8 +104,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     ),
                   ),
                   SizedBox(height: 30),
-
-                  // Lý do
                   _buildSectionContainer(
                     title: 'Lý do:',
                     child: TextField(
@@ -127,22 +123,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       ),
                     ),
                   ),
-
                   SizedBox(height: 20),
-
-                  // Thời gian nghỉ, Bắt đầu, Kết thúc
                   _buildSectionContainer(
                     title: '',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildTimeField(
-                          label: 'Thời gian nghỉ:',
-                          value: _startDate != null
-                              ? '${_startDate!.day}/${_startDate!.month}/${_startDate!.year}'
-                              : 'Chọn ngày',
-                          onTap: () => _selectStartDate(context),
-                        ),
                         SizedBox(height: 16),
                         _buildTimeField(
                           label: 'Bắt đầu:',
@@ -162,10 +148,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       ],
                     ),
                   ),
-
                   SizedBox(height: 30),
-
-                  // Nút gửi đơn
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -191,10 +174,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ],
               ),
             ),
-
             SizedBox(height: 100),
-
-            // FAB Button ở cuối (giống HomeScreen)
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
@@ -218,7 +198,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ),
               ),
             ),
-
             SizedBox(height: 50),
           ],
         ),
@@ -322,7 +301,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     if (picked != null && picked != _startDate) {
       setState(() {
         _startDate = picked;
-        // Reset end date if it's before start date
         if (_endDate != null && _endDate!.isBefore(picked)) {
           _endDate = null;
         }
@@ -351,7 +329,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     }
   }
 
-  void _submitLeaveRequest() {
+  void _submitLeaveRequest() async {
     if (_reasonController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Vui lòng nhập lý do xin nghỉ')),
@@ -366,16 +344,38 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       return;
     }
 
-    // Xử lý gửi đơn xin nghỉ ở đây
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Đã gửi đơn xin nghỉ thành công!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không tìm thấy thông tin người dùng')),
+      );
+      return;
+    }
 
-    // Có thể quay về màn hình trước hoặc reset form
-    Navigator.pop(context);
+    try {
+      await FirebaseFirestore.instance.collection('leave_requests').add({
+        'userId': user.uid,
+        'displayName': user.displayName ?? '',
+        'email': user.email ?? '',
+        'reason': _reasonController.text.trim(),
+        'startDate': _startDate,
+        'endDate': _endDate,
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'pending',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Đã gửi đơn xin nghỉ thành công!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi gửi đơn: $e')),
+      );
+    }
   }
 
   String _getDisplayName(User? user) {
