@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // thêm thư viện này
 
 class EmployeeInfoScreen extends StatefulWidget {
   const EmployeeInfoScreen({Key? key}) : super(key: key);
@@ -9,20 +10,45 @@ class EmployeeInfoScreen extends StatefulWidget {
 }
 
 class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
-  // Dữ liệu mẫu thông tin nhân viên
-  final Map<String, String> employeeInfo = {
-    'id': 'BT123469',
-    'name': 'Phạm Quang Anh',
-    'phone': '0123456789',
-    'email': 'phamanh@company.com',
-    'department': 'Phòng IT',
-    'position': 'Lập trình viên',
-  };
+  Map<String, dynamic>? employeeInfo;
+  bool isLoading = true;
+  String displayName = 'Người dùng';
+
+  @override
+  void initState() {
+    super.initState();
+    fetchEmployeeInfo();
+  }
+
+  Future<void> fetchEmployeeInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+
+    if (userId == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    final doc =
+    await FirebaseFirestore.instance.collection('users').doc(userId).get();
+
+    if (doc.exists) {
+      setState(() {
+        employeeInfo = doc.data();
+        displayName = employeeInfo?['name'] ?? 'Người dùng';
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -41,7 +67,7 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
             ),
             SizedBox(width: 12),
             Text(
-              _getDisplayName(user),
+              displayName,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 16,
@@ -51,34 +77,15 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
             Icon(Icons.keyboard_arrow_down, color: Colors.black),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.grid_3x3, color: Colors.black),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.notifications_outlined, color: Colors.black),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.help_outline, color: Colors.black),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.logout, color: Colors.black),
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-        ],
       ),
-      body: SingleChildScrollView(
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : employeeInfo == null
+          ? Center(child: Text('Không tìm thấy thông tin nhân viên'))
+          : SingleChildScrollView(
         child: Column(
           children: [
             SizedBox(height: 20),
-
-            // Container chính chứa thông tin nhân viên
             Container(
               margin: EdgeInsets.symmetric(horizontal: 16),
               padding: EdgeInsets.all(20),
@@ -96,7 +103,6 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Tiêu đề
                   Text(
                     'Thông tin Nhân viên',
                     style: TextStyle(
@@ -106,8 +112,6 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                     ),
                   ),
                   SizedBox(height: 30),
-
-                  // Avatar
                   Container(
                     width: 80,
                     height: 80,
@@ -121,54 +125,25 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
                       color: Colors.black,
                     ),
                   ),
-                  SizedBox(height: 20),
-
-                  // Các trường thông tin
-                  _buildInfoField('Mã:', employeeInfo['id']!),
                   SizedBox(height: 12),
-                  _buildInfoField('Họ và tên:', employeeInfo['name']!),
+                  _buildInfoField('Họ và tên:',
+                      employeeInfo!['name'] ?? ''),
                   SizedBox(height: 12),
-                  _buildInfoField('Số điện thoại:', employeeInfo['phone']!),
+                  _buildInfoField('Số điện thoại:',
+                      employeeInfo!['phone'] ?? ''),
                   SizedBox(height: 12),
-                  _buildInfoField('Email:', employeeInfo['email']!),
+                  _buildInfoField(
+                      'Email:', employeeInfo!['email'] ?? ''),
                   SizedBox(height: 12),
-                  _buildInfoField('Phòng ban:', employeeInfo['department']!),
+                  _buildInfoField('Phòng ban:',
+                      employeeInfo!['department'] ?? ''),
                   SizedBox(height: 12),
-                  _buildInfoField('Chức vụ:', employeeInfo['position']!),
-                  SizedBox(height: 12),
-
+                  _buildInfoField('Chức vụ:',
+                      employeeInfo!['position'] ?? ''),
                 ],
               ),
             ),
-
             SizedBox(height: 100),
-
-            // FAB Button ở cuối (giống HomeScreen)
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.blue[700],
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  Icons.home,
-                  color: Colors.white,
-                  size: 30,
-                ),
-              ),
-            ),
-
-            SizedBox(height: 50),
           ],
         ),
       ),
@@ -185,17 +160,15 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
       ),
       child: Row(
         children: [
-          if (label.isNotEmpty) ...[
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
             ),
-            SizedBox(width: 8),
-          ],
+          ),
+          SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
@@ -208,32 +181,5 @@ class _EmployeeInfoScreenState extends State<EmployeeInfoScreen> {
         ],
       ),
     );
-  }
-
-
-
-  String _getDisplayName(User? user) {
-    if (user == null) return 'Người dùng';
-
-    if (user.displayName != null && user.displayName!.isNotEmpty) {
-      String fullName = user.displayName!;
-      if (fullName.length > 10) {
-        return '${fullName.substring(0, 8)}...';
-      }
-      return fullName;
-    }
-
-    if (user.email != null && user.email!.isNotEmpty) {
-      String emailName = user.email!.split('@')[0];
-      if (emailName.isNotEmpty) {
-        String displayName = emailName[0].toUpperCase() + emailName.substring(1).toLowerCase();
-        if (displayName.length > 10) {
-          return '${displayName.substring(0, 8)}...';
-        }
-        return displayName;
-      }
-    }
-
-    return 'Người dùng';
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class AttendanceHistoryScreen extends StatefulWidget {
   const AttendanceHistoryScreen({Key? key}) : super(key: key);
@@ -20,43 +21,43 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
           children: [
-            CircleAvatar(
+            const CircleAvatar(
               backgroundColor: Colors.red,
               radius: 16,
               child: Icon(Icons.person, color: Colors.white, size: 16),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Text(
               _getDisplayName(user),
-              style: TextStyle(
+              style: const TextStyle(
                 color: Colors.black,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
-            Icon(Icons.keyboard_arrow_down, color: Colors.black),
+            const Icon(Icons.keyboard_arrow_down, color: Colors.black),
           ],
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.grid_3x3, color: Colors.black),
+            icon: const Icon(Icons.grid_3x3, color: Colors.black),
             onPressed: () {},
           ),
           IconButton(
-            icon: Icon(Icons.notifications_outlined, color: Colors.black),
+            icon: const Icon(Icons.notifications_outlined, color: Colors.black),
             onPressed: () {},
           ),
           IconButton(
-            icon: Icon(Icons.help_outline, color: Colors.black),
+            icon: const Icon(Icons.help_outline, color: Colors.black),
             onPressed: () {},
           ),
           IconButton(
-            icon: Icon(Icons.logout, color: Colors.black),
+            icon: const Icon(Icons.logout, color: Colors.black),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               Navigator.pushReplacementNamed(context, '/login');
@@ -67,9 +68,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Container(
-              margin: EdgeInsets.symmetric(horizontal: 16),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -77,14 +78,14 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                   BoxShadow(
                     color: Colors.black.withOpacity(0.05),
                     blurRadius: 10,
-                    offset: Offset(0, 2),
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
+                  const Padding(
                     padding: EdgeInsets.all(20),
                     child: Text(
                       'Lịch sử chấm công:',
@@ -97,24 +98,83 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                   ),
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
-                        .collection('attendance_records')
-                        .where('userId', isEqualTo: user?.uid)
-                        .orderBy('date', descending: true)
+                        .collection('checkins')
+                        .where('uid', isEqualTo: user?.uid) // lọc theo UID
                         .snapshots(),
+
                     builder: (context, snapshot) {
-                      if (!snapshot.hasData) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-                      final docs = snapshot.data!.docs;
-                      if (docs.isEmpty) {
-                        return Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Text('Không có dữ liệu chấm công.'),
+                      print('Current UID: ${user?.uid}');
+                      print('Docs count: ${snapshot.data?.docs.length}');
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(),
+                          ),
                         );
                       }
+
+                      if (snapshot.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Text(
+                            'Lỗi khi tải dữ liệu: ${snapshot.error}',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        );
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.access_time,
+                                size: 50,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Chưa có dữ liệu chấm công',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[600],
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Hãy bắt đầu chấm công để xem lịch sử',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      final docs = snapshot.data!.docs;
+
+                      // sắp xếp mới nhất trước
+                      docs.sort((a, b) {
+                        final aData = a.data() as Map<String, dynamic>;
+                        final bData = b.data() as Map<String, dynamic>;
+
+                        if (aData['timestamp'] == null && bData['timestamp'] == null) return 0;
+                        if (aData['timestamp'] == null) return 1;
+                        if (bData['timestamp'] == null) return -1;
+
+                        Timestamp aTime = aData['timestamp'] as Timestamp;
+                        Timestamp bTime = bData['timestamp'] as Timestamp;
+                        return bTime.compareTo(aTime);
+                      });
+
                       return ListView.separated(
                         shrinkWrap: true,
-                        physics: NeverScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         itemCount: docs.length,
                         separatorBuilder: (context, index) => Divider(
                           height: 1,
@@ -124,23 +184,16 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                         ),
                         itemBuilder: (context, index) {
                           final data = docs[index].data() as Map<String, dynamic>;
-                          return _buildAttendanceItem(
-                            AttendanceRecord(
-                              date: data['date'] ?? '',
-                              checkIn: data['checkIn'] ?? '',
-                              checkOut: data['checkOut'] ?? '',
-                            ),
-                          );
+                          return _buildAttendanceItem(data);
                         },
                       );
                     },
                   ),
-                  ...List.generate(3, (index) => _buildEmptyItem()),
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
-            SizedBox(height: 100),
+            const SizedBox(height: 100),
             GestureDetector(
               onTap: () => Navigator.pop(context),
               child: Container(
@@ -153,69 +206,153 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                     BoxShadow(
                       color: Colors.blue.withOpacity(0.3),
                       blurRadius: 10,
-                      offset: Offset(0, 5),
+                      offset: const Offset(0, 5),
                     ),
                   ],
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.home,
                   color: Colors.white,
                   size: 30,
                 ),
               ),
             ),
-            SizedBox(height: 50),
+            const SizedBox(height: 50),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAttendanceItem(AttendanceRecord record) {
+  Widget _buildAttendanceItem(Map<String, dynamic> data) {
+    String formattedCheckIn = 'Chưa có';
+    String formattedDate = data['date'] ?? 'Chưa có';
+    String type = data['type'] ?? 'unknown';
+    String email = data['email'] ?? '';
+
+    if (data['timestamp'] != null) {
+      try {
+        Timestamp checkInTimestamp = data['timestamp'] as Timestamp;
+        DateTime checkInTime = checkInTimestamp.toDate();
+        formattedCheckIn = DateFormat('HH:mm:ss').format(checkInTime);
+        if (formattedDate == 'Chưa có') {
+          formattedDate = DateFormat('dd/MM/yyyy').format(checkInTime);
+        }
+      } catch (e) {
+        formattedCheckIn = 'Lỗi format';
+      }
+    }
+
+    Color statusColor = Colors.green;
+    String statusText = 'Check-in';
+    IconData statusIcon = Icons.login;
+
+    switch (type.toLowerCase()) {
+      case 'checkin':
+        statusColor = Colors.green;
+        statusText = 'Check-in';
+        statusIcon = Icons.login;
+        break;
+      case 'checkout':
+        statusColor = Colors.blue;
+        statusText = 'Check-out';
+        statusIcon = Icons.logout;
+        break;
+      default:
+        statusColor = Colors.grey;
+        statusText = 'Không xác định';
+        statusIcon = Icons.help_outline;
+    }
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Column(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Ngày ${record.date}:',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+          Container(
+            width: 8,
+            height: 60,
+            decoration: BoxDecoration(
+              color: statusColor,
+              borderRadius: BorderRadius.circular(4),
             ),
           ),
-          SizedBox(height: 4),
-          Text(
-            '-CheckIn:${record.checkIn}',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.black54,
-            ),
-          ),
-          SizedBox(height: 2),
-          Text(
-            '-CheckOut:${record.checkOut}',
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.black54,
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Ngày $formattedDate',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: statusColor.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(statusIcon, size: 10, color: statusColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: statusColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(Icons.access_time, size: 14, color: Colors.blue[600]),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Thời gian: $formattedCheckIn',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
+                if (email.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.email, size: 14, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Email: $email',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildEmptyItem() {
-    return Container(
-      height: 70,
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        border: Border(
-          top: BorderSide(color: Colors.grey[300]!, width: 1),
-        ),
-      ),
-      child: SizedBox(),
     );
   }
 
@@ -240,16 +377,4 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
     }
     return 'Người dùng';
   }
-}
-
-class AttendanceRecord {
-  final String date;
-  final String checkIn;
-  final String checkOut;
-
-  AttendanceRecord({
-    required this.date,
-    required this.checkIn,
-    required this.checkOut,
-  });
 }

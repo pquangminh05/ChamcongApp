@@ -9,6 +9,8 @@ class EmployeeListScreen extends StatefulWidget {
 }
 
 class _EmployeeListScreenState extends State<EmployeeListScreen> {
+  String searchQuery = '';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,11 +19,11 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
         backgroundColor: Colors.blueGrey[700],
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
-          children: [
+          children: const [
             CircleAvatar(
               backgroundColor: Colors.red,
               radius: 16,
@@ -38,61 +40,46 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.grid_3x3, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.help_outline, color: Colors.white),
-            onPressed: () {},
-          ),
+        actions: const [
+          Icon(Icons.grid_3x3, color: Colors.white),
+          SizedBox(width: 8),
+          Icon(Icons.notifications_outlined, color: Colors.white),
+          SizedBox(width: 8),
+          Icon(Icons.help_outline, color: Colors.white),
+          SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          SizedBox(height: 20),
-          // Header với nút tìm kiếm nhân viên
+          const SizedBox(height: 20),
+          // Ô tìm kiếm
           Container(
-            margin: EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.teal,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Tìm kiếm nhân viên',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            margin: const EdgeInsets.symmetric(horizontal: 20),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value.toLowerCase();
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Tìm kiếm nhân viên',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
                 ),
-              ],
+              ),
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           // Danh sách nhân viên
           Expanded(
             child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 20),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -100,13 +87,13 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
                     blurRadius: 10,
-                    offset: Offset(0, 5),
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),
               child: Column(
                 children: [
-                  SizedBox(height: 20),
+                  const SizedBox(height: 20),
                   Expanded(
                     child: StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
@@ -114,27 +101,35 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                           .where('role', isEqualTo: 'employee')
                           .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
                         }
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return const Center(child: Text('Không có nhân viên nào.'));
+                          return const Center(
+                              child: Text('Không có nhân viên nào.'));
                         }
 
-                        final employees = snapshot.data!.docs.map((doc) {
-                          return EmployeeInfo.fromFirestore(doc);
-                        }).toList();
+                        // Lọc dữ liệu theo searchQuery
+                        final employees = snapshot.data!.docs
+                            .map((doc) => EmployeeInfo.fromFirestore(doc))
+                            .where((emp) =>
+                        emp.name.toLowerCase().contains(searchQuery) ||
+                            emp.email.toLowerCase().contains(searchQuery))
+                            .toList();
 
                         return ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           itemCount: employees.length,
-                          itemBuilder: (context, index) => _buildEmployeeItem(employees[index]),
+                          itemBuilder: (context, index) =>
+                              _buildEmployeeItem(employees[index]),
                         );
                       },
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(20),
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
@@ -152,7 +147,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                               ),
                             ],
                           ),
-                          child: Icon(
+                          child: const Icon(
                             Icons.add,
                             color: Colors.white,
                             size: 24,
@@ -165,7 +160,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
               ),
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -175,8 +170,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
     return GestureDetector(
       onTap: () => _showEmployeeDetail(employee),
       child: Container(
-        margin: EdgeInsets.only(bottom: 12),
-        padding: EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.grey[100],
           borderRadius: BorderRadius.circular(8),
@@ -187,13 +182,13 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
           children: [
             Text(
               employee.name,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.black87,
               ),
             ),
-            SizedBox(height: 4),
+            const SizedBox(height: 4),
             Text(
               'Vị trí: ${employee.role}',
               style: TextStyle(
@@ -233,7 +228,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
 class EmployeeDetailScreen extends StatelessWidget {
   final EmployeeInfo employee;
 
-  const EmployeeDetailScreen({Key? key, required this.employee}) : super(key: key);
+  const EmployeeDetailScreen({Key? key, required this.employee})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -243,11 +239,11 @@ class EmployeeDetailScreen extends StatelessWidget {
         backgroundColor: Colors.blueGrey[700],
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
-          children: [
+          children: const [
             CircleAvatar(
               backgroundColor: Colors.red,
               radius: 16,
@@ -264,61 +260,22 @@ class EmployeeDetailScreen extends StatelessWidget {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.grid_3x3, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.help_outline, color: Colors.white),
-            onPressed: () {},
-          ),
+        actions: const [
+          Icon(Icons.grid_3x3, color: Colors.white),
+          SizedBox(width: 8),
+          Icon(Icons.notifications_outlined, color: Colors.white),
+          SizedBox(width: 8),
+          Icon(Icons.help_outline, color: Colors.white),
+          SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          SizedBox(height: 20),
-          // Header với nút tìm kiếm nhân viên
-          Container(
-            margin: EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.teal,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.search, color: Colors.white, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Tìm kiếm nhân viên',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           // Chi tiết nhân viên
           Expanded(
             child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 20),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -326,18 +283,18 @@ class EmployeeDetailScreen extends StatelessWidget {
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
                     blurRadius: 10,
-                    offset: Offset(0, 5),
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),
               child: Padding(
-                padding: EdgeInsets.all(20),
+                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Thông tin nhân viên
                     Container(
-                      padding: EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(8),
@@ -348,13 +305,13 @@ class EmployeeDetailScreen extends StatelessWidget {
                         children: [
                           Text(
                             employee.name,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
                             'Vị trí: ${employee.role}',
                             style: TextStyle(
@@ -363,7 +320,7 @@ class EmployeeDetailScreen extends StatelessWidget {
                             ),
                           ),
                           if (employee.email.isNotEmpty) ...[
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
                               'Email: ${employee.email}',
                               style: TextStyle(
@@ -375,26 +332,19 @@ class EmployeeDetailScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-                    // Thông tin chi tiết
+                    // Thông tin chi tiết (cố định mẫu)
                     Container(
-                      padding: EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.grey[50],
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildDetailRow('Ngày', '25/08/2025'),
-                          _buildDetailRow('Ca sáng', 'Có mặt'),
-                          _buildDetailRow('Ca chiều', 'Có mặt'),
-                        ],
-                      ),
+
                     ),
 
-                    Spacer(),
+                    const Spacer(),
 
                     // Nút điều chỉnh
                     Row(
@@ -407,9 +357,10 @@ class EmployeeDetailScreen extends StatelessWidget {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              padding: EdgeInsets.symmetric(vertical: 12),
+                              padding:
+                              const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            child: Text(
+                            child: const Text(
                               'Điều chỉnh',
                               style: TextStyle(
                                 color: Colors.white,
@@ -426,7 +377,7 @@ class EmployeeDetailScreen extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -441,7 +392,7 @@ class EmployeeDetailScreen extends StatelessWidget {
     }
 
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

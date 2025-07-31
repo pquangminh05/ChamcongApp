@@ -150,7 +150,7 @@ class HomeScreen extends StatelessWidget {
               left: 20,
               top: 30,
               child: Text(
-                'iPhone 15 Pro Max\nChính hãng VN/A',
+                'Hệ thống chấm công RE',
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ),
@@ -231,12 +231,7 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           SizedBox(height: 20),
-          Row(
-            children: [
-              Text('Mã ID: ', style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-              Text('BT123469', style: TextStyle(color: Colors.blue, fontSize: 14, fontWeight: FontWeight.w500)),
-            ],
-          ),
+
         ],
       ),
     );
@@ -274,6 +269,8 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildNotificationSheet() {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Container(
       height: 400,
       padding: EdgeInsets.all(16),
@@ -284,10 +281,15 @@ class HomeScreen extends StatelessWidget {
           SizedBox(height: 12),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance.collection('notifications').orderBy('timestamp', descending: true).snapshots(),
+              stream: FirebaseFirestore.instance
+                  .collection('notifications')
+                  .where('userId', isEqualTo: user?.uid) // 🔑 Lọc thông báo theo người dùng hiện tại
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.hasError) return Text('Lỗi: ${snapshot.error}');
-                if (snapshot.connectionState == ConnectionState.waiting) return Center(child: CircularProgressIndicator());
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  return Center(child: CircularProgressIndicator());
 
                 final docs = snapshot.data!.docs;
 

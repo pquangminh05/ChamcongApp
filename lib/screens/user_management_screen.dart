@@ -17,70 +17,92 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         backgroundColor: Colors.blueGrey[700],
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Row(
-          children: [
+          children: const [
             CircleAvatar(
               backgroundColor: Colors.red,
               radius: 16,
               child: Icon(Icons.person, color: Colors.white, size: 16),
             ),
             SizedBox(width: 12),
-            Text('ADMIN', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+            Text('ADMIN',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600)),
             Icon(Icons.keyboard_arrow_down, color: Colors.white),
           ],
         ),
-        actions: [
-          IconButton(icon: Icon(Icons.grid_3x3, color: Colors.white), onPressed: () {}),
-          IconButton(icon: Icon(Icons.notifications_outlined, color: Colors.white), onPressed: () {}),
-          IconButton(icon: Icon(Icons.help_outline, color: Colors.white), onPressed: () {}),
+        actions: const [
+          Icon(Icons.grid_3x3, color: Colors.white),
+          SizedBox(width: 8),
+          Icon(Icons.notifications_outlined, color: Colors.white),
+          SizedBox(width: 8),
+          Icon(Icons.help_outline, color: Colors.white),
+          SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          SizedBox(height: 30),
+          const SizedBox(height: 30),
           Expanded(
             child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 20),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 5))],
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5))
+                ],
               ),
               child: Column(
                 children: [
                   Container(
-                    padding: EdgeInsets.all(20),
-                    child: Text('Quản lý tài khoản', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    padding: const EdgeInsets.all(20),
+                    child: const Text('Quản lý tài khoản',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                   Expanded(
                     child: StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance.collection('users').snapshots(),
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .snapshots(),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
                         }
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return const Center(child: Text('Không có người dùng.'));
+                        if (!snapshot.hasData ||
+                            snapshot.data!.docs.isEmpty) {
+                          return const Center(
+                              child: Text('Không có người dùng.'));
                         }
 
-                        final users = snapshot.data!.docs.map((doc) {
-                          return UserInfo.fromFirestore(doc);
-                        }).toList();
+                        final users = snapshot.data!.docs
+                            .map((doc) => UserInfo.fromFirestore(doc))
+                            .toList();
 
                         return ListView.separated(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           itemCount: users.length,
-                          separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey[300]),
-                          itemBuilder: (context, index) => _buildUserItem(users[index]),
+                          separatorBuilder: (context, index) => Divider(
+                              height: 1, color: Colors.grey[300]),
+                          itemBuilder: (context, index) =>
+                              _buildUserItem(users[index]),
                         );
                       },
                     ),
                   ),
                   Padding(
-                    padding: EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(20),
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
@@ -91,9 +113,14 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           decoration: BoxDecoration(
                             color: Colors.grey[400],
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 5)],
+                            boxShadow: [
+                              BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 5)
+                            ],
                           ),
-                          child: Icon(Icons.add, color: Colors.white, size: 24),
+                          child: const Icon(Icons.add,
+                              color: Colors.white, size: 24),
                         ),
                       ),
                     ),
@@ -102,7 +129,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
               ),
             ),
           ),
-          SizedBox(height: 30),
+          const SizedBox(height: 30),
         ],
       ),
     );
@@ -110,11 +137,17 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   Widget _buildUserItem(UserInfo user) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          Expanded(flex: 2, child: Text(user.name, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500))),
-          Expanded(flex: 1, child: Text(user.role, style: TextStyle(fontSize: 14))),
+          Expanded(
+              flex: 2,
+              child: Text(user.name,
+                  style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.w500))),
+          Expanded(
+              flex: 1,
+              child: Text(user.role, style: const TextStyle(fontSize: 14))),
           GestureDetector(
             onTap: () => _showUserActions(user),
             child: Icon(Icons.more_vert, color: Colors.grey[600], size: 20),
@@ -124,57 +157,143 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
+  // ========== THÊM NGƯỜI DÙNG ==========
   void _addNewUser() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         String name = '';
         String email = '';
+        String password = '';
         String role = 'employee';
+        bool isLoading = false;
+        String? errorText;
+
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Thêm người dùng mới'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    decoration: InputDecoration(labelText: 'Tên người dùng'),
-                    onChanged: (value) => name = value,
-                  ),
-                  SizedBox(height: 12),
-                  TextField(
-                    decoration: InputDecoration(labelText: 'Email'),
-                    onChanged: (value) => email = value,
-                  ),
-                  SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: role,
-                    decoration: InputDecoration(labelText: 'Vai trò'),
-                    items: ['admin', 'manager', 'employee']
-                        .map((r) => DropdownMenuItem(value: r, child: Text(r)))
-                        .toList(),
-                    onChanged: (value) => setState(() {
-                      role = value!;
-                    }),
-                  ),
-                ],
+              title: const Text('Thêm người dùng mới'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      decoration:
+                      const InputDecoration(labelText: 'Tên người dùng'),
+                      onChanged: (value) => name = value,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      decoration: const InputDecoration(labelText: 'Email'),
+                      onChanged: (value) => email = value,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      obscureText: true,
+                      decoration:
+                      const InputDecoration(labelText: 'Mật khẩu'),
+                      onChanged: (value) => password = value,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: role,
+                      decoration:
+                      const InputDecoration(labelText: 'Vai trò'),
+                      items: ['admin', 'manager', 'employee']
+                          .map((r) => DropdownMenuItem(
+                          value: r, child: Text(r)))
+                          .toList(),
+                      onChanged: (value) => setState(() {
+                        role = value!;
+                      }),
+                    ),
+                    if (errorText != null) ...[
+                      const SizedBox(height: 8),
+                      Text(errorText!,
+                          style:
+                          const TextStyle(color: Colors.red, fontSize: 13)),
+                    ]
+                  ],
+                ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: Text('Hủy')),
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Hủy')),
                 ElevatedButton(
-                  onPressed: () async {
-                    if (name.isNotEmpty && email.isNotEmpty) {
-                      await FirebaseFirestore.instance.collection('users').add({
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+                    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+                      setState(() {
+                        errorText = 'Vui lòng điền đầy đủ thông tin';
+                      });
+                      return;
+                    }
+                    if (!emailRegex.hasMatch(email)) {
+                      setState(() {
+                        errorText = 'Email không hợp lệ';
+                      });
+                      return;
+                    }
+
+
+                    setState(() {
+                      isLoading = true;
+                      errorText = null;
+                    });
+
+                    try {
+                      // Kiểm tra email trùng
+                      final check = await FirebaseFirestore.instance
+                          .collection('users')
+                          .where('email', isEqualTo: email)
+                          .get();
+
+                      if (check.docs.isNotEmpty) {
+                        setState(() {
+                          errorText = 'Email này đã tồn tại';
+                          isLoading = false;
+                        });
+                        return;
+                      }
+
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .add({
                         'name': name,
                         'role': role,
                         'email': email,
+                        'password': password,
                       });
+
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã thêm người dùng mới!')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                            Text('Đã thêm người dùng mới!')),
+                      );
+                    } catch (e) {
+                      setState(() {
+                        errorText = 'Có lỗi xảy ra: $e';
+                      });
+                    } finally {
+                      setState(() {
+                        isLoading = false;
+                      });
                     }
                   },
-                  child: Text('Thêm'),
+                  child: isLoading
+                      ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                      : const Text('Thêm'),
                 ),
               ],
             );
@@ -184,6 +303,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
+  // ========== ACTION SHEET ==========
   void _showUserActions(UserInfo user) {
     showModalBottomSheet(
       context: context,
@@ -192,19 +312,27 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.delete, color: Colors.red),
-              title: Text('Xóa', style: TextStyle(color: Colors.red)),
+              leading: const Icon(Icons.edit),
+              title: const Text('Sửa thông tin'),
               onTap: () {
                 Navigator.pop(context);
-                _deleteUser(user);
+                _editUser(user);
               },
             ),
             ListTile(
-              leading: Icon(Icons.security),
-              title: Text('Đổi quyền'),
+              leading: const Icon(Icons.security),
+              title: const Text('Đổi quyền'),
               onTap: () {
                 Navigator.pop(context);
                 _changeUserRole(user);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('Xóa', style: TextStyle(color: Colors.red)),
+              onTap: () {
+                Navigator.pop(context);
+                _deleteUser(user);
               },
             ),
           ],
@@ -213,13 +341,152 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
+  // ========== SỬA NGƯỜI DÙNG ==========
+  void _editUser(UserInfo user) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        String name = user.name;
+        String email = user.email;
+        String password = user.password;
+        String role = user.role;
+        bool isLoading = false;
+        String? errorText;
+
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Sửa thông tin người dùng'),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: TextEditingController(text: name),
+                      decoration:
+                      const InputDecoration(labelText: 'Tên người dùng'),
+                      onChanged: (value) => name = value,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: TextEditingController(text: email),
+                      decoration: const InputDecoration(labelText: 'Email'),
+                      onChanged: (value) => email = value,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: TextEditingController(text: password),
+                      obscureText: true,
+                      decoration:
+                      const InputDecoration(labelText: 'Mật khẩu'),
+                      onChanged: (value) => password = value,
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: role,
+                      decoration:
+                      const InputDecoration(labelText: 'Vai trò'),
+                      items: ['admin', 'manager', 'employee']
+                          .map((r) => DropdownMenuItem(
+                          value: r, child: Text(r)))
+                          .toList(),
+                      onChanged: (value) => setState(() {
+                        role = value!;
+                      }),
+                    ),
+                    if (errorText != null) ...[
+                      const SizedBox(height: 8),
+                      Text(errorText!,
+                          style:
+                          const TextStyle(color: Colors.red, fontSize: 13)),
+                    ]
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Hủy')),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+                    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+                      setState(() {
+                        errorText = 'Vui lòng điền đầy đủ thông tin';
+                      });
+                      return;
+                    }
+                    if (!emailRegex.hasMatch(email)) {
+                      setState(() {
+                        errorText = 'Email không hợp lệ';
+                      });
+                      return;
+                    }
+
+                    setState(() {
+                      isLoading = true;
+                      errorText = null;
+                    });
+
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.id)
+                          .update({
+                        'name': name,
+                        'email': email,
+                        'password': password,
+                        'role': role,
+                      });
+
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Đã cập nhật người dùng!')),
+                      );
+                    } catch (e) {
+                      setState(() {
+                        errorText = 'Có lỗi xảy ra: $e';
+                      });
+                    } finally {
+                      setState(() {
+                        isLoading = false;
+                      });
+                    }
+                  },
+                  child: isLoading
+                      ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                      : const Text('Lưu'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ========== XÓA NGƯỜI DÙNG ==========
   void _deleteUser(UserInfo user) async {
     if (user.id.isNotEmpty) {
-      await FirebaseFirestore.instance.collection('users').doc(user.id).delete();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã xóa người dùng.')));
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.id)
+          .delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã xóa người dùng.')));
     }
   }
 
+  // ========== ĐỔI QUYỀN ==========
   void _changeUserRole(UserInfo user) {
     String newRole = user.role;
     showDialog(
@@ -228,18 +495,23 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Đổi quyền người dùng'),
+              title: const Text('Đổi quyền người dùng'),
               content: DropdownButtonFormField<String>(
-                value: ['admin', 'manager', 'employee'].contains(newRole) ? newRole : null,
+                value: ['admin', 'manager', 'employee'].contains(newRole)
+                    ? newRole
+                    : null,
                 items: ['admin', 'manager', 'employee']
-                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
+                    .map((r) =>
+                    DropdownMenuItem(value: r, child: Text(r)))
                     .toList(),
                 onChanged: (value) => setState(() {
                   newRole = value!;
                 }),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: Text('Hủy')),
+                TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Hủy')),
                 ElevatedButton(
                   onPressed: () async {
                     if (user.id.isNotEmpty) {
@@ -248,10 +520,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                           .doc(user.id)
                           .update({'role': newRole});
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã cập nhật quyền người dùng.')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Đã cập nhật quyền người dùng.')),
+                      );
                     }
                   },
-                  child: Text('Cập nhật'),
+                  child: const Text('Cập nhật'),
                 ),
               ],
             );
@@ -262,17 +537,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 }
 
+// Model
 class UserInfo {
   final String id;
   final String name;
   final String role;
   final String email;
+  final String password;
 
   UserInfo({
     required this.id,
     required this.name,
     required this.role,
     required this.email,
+    required this.password,
   });
 
   factory UserInfo.fromFirestore(DocumentSnapshot doc) {
@@ -282,6 +560,7 @@ class UserInfo {
       name: data['name'] ?? '',
       role: data['role'] ?? '',
       email: data['email'] ?? '',
+      password: data['password'] ?? '',
     );
   }
 }

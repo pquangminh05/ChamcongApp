@@ -1,5 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/services.dart';
+
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -14,6 +17,7 @@ import 'screens/manager_screen.dart';
 import 'screens/department_management_screen.dart';
 import 'screens/employee_list_screen.dart';
 import 'screens/leave_approval_screen.dart';
+import 'screens/manager_attendance_screen.dart';
 
 
 void main() async {
@@ -21,6 +25,10 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+
   runApp(const MyApp());
 }
 
@@ -47,8 +55,12 @@ class MyApp extends StatelessWidget {
         '/department_management': (context) => const DepartmentManagementScreen(),
         '/employee_list': (context) => const EmployeeListScreen(),
         '/leave_approval': (context) => const LeaveApprovalScreen(),
-
+        '/manager_attendance':(context) => const ManagerAttendanceScreen(managerId: '',),
       }
+
     );
+
   }
+
+
 }

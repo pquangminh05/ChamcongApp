@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'manager_attendance_screen.dart';
 
 class ManagerScreen extends StatelessWidget {
   const ManagerScreen({Key? key}) : super(key: key);
@@ -210,10 +213,34 @@ class ManagerScreen extends StatelessWidget {
     Navigator.pushNamed(context, '/employee_list');
   }
 
-  void _navigateToAttendance(BuildContext context) {
-    // Navigate to attendance screen
-    Navigator.pushNamed(context, '/attendance');
+  void _navigateToAttendance(BuildContext context) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser == null) return;
+
+    // Lấy thông tin user từ Firestore (có thể chứa uid khác hoặc thông tin khác)
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
+
+    if (!userDoc.exists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không tìm thấy thông tin quản lý')),
+      );
+      return;
+    }
+
+    final managerId = userDoc.id;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ManagerAttendanceScreen(managerId: managerId),
+      ),
+    );
   }
+
 
   void _navigateToLeaveApproval(BuildContext context) {
     // Navigate to leave approval screen
