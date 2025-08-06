@@ -42,7 +42,16 @@ class ManagerScreen extends StatelessWidget {
           ),
           IconButton(
             icon: Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {},
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (context) => _buildLeaveRequestNotificationSheet(),
+              );
+            },
           ),
           IconButton(
             icon: Icon(Icons.help_outline, color: Colors.white),
@@ -54,7 +63,7 @@ class ManagerScreen extends StatelessWidget {
         children: [
           SizedBox(height: 30),
 
-          // Container chính chứa các chức năng quản lý nhân viên
+          // Container chính chứa các chức năng quản lý
           Expanded(
             child: Container(
               margin: EdgeInsets.symmetric(horizontal: 20),
@@ -80,7 +89,7 @@ class ManagerScreen extends StatelessWidget {
                     children: [
                       _buildManagementMenuItem(
                         icon: Icons.group,
-                        label: 'Quản lý\nnhân viên',
+                        label: 'Danh sách\nnhân viên',
                         onTap: () => _navigateToEmployeeList(context),
                       ),
                       _buildManagementMenuItem(
@@ -93,7 +102,7 @@ class ManagerScreen extends StatelessWidget {
 
                   SizedBox(height: 50),
 
-                  // Row thứ hai với chức năng duyệt nghỉ phép
+                  // Duyệt đơn nghỉ
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -207,43 +216,71 @@ class ManagerScreen extends StatelessWidget {
     );
   }
 
-  // Các hàm navigation cho từng chức năng
   void _navigateToEmployeeList(BuildContext context) {
-    // Navigate to employee list screen
     Navigator.pushNamed(context, '/employee_list');
   }
 
-  void _navigateToAttendance(BuildContext context) async {
-    final currentUser = FirebaseAuth.instance.currentUser;
+  void _navigateToAttendance(BuildContext context) {
+    Navigator.pushNamed(context, '/manager_attendance');
+  }
 
-    if (currentUser == null) return;
+  void _navigateToLeaveApproval(BuildContext context) {
+    Navigator.pushNamed(context, '/leave_approval');
+  }
+  //Chức năng hiển thị thông báo đơn xin nghỉ phép
+  Widget _buildLeaveRequestNotificationSheet() {
+    return Container(
+      height: 400,
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Thông báo',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 12),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('leave_requests')
+                  .where('status', isEqualTo: 'pending') // Chỉ lấy đơn chưa duyệt
+                  .orderBy('timestamp', descending: true)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError)
+                  return Text('Lỗi: ${snapshot.error}');
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  return Center(child: CircularProgressIndicator());
 
-    // Lấy thông tin user từ Firestore (có thể chứa uid khác hoặc thông tin khác)
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(currentUser.uid)
-        .get();
+                final docs = snapshot.data!.docs;
 
-    if (!userDoc.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không tìm thấy thông tin quản lý')),
-      );
-      return;
-    }
+                if (docs.isEmpty) return Text('Không có đơn nào đang chờ duyệt.');
 
-    final managerId = userDoc.id;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ManagerAttendanceScreen(managerId: managerId),
+                return ListView.builder(
+                  itemCount: docs.length,
+                  itemBuilder: (context, index) {
+                    final data = docs[index].data() as Map<String, dynamic>;
+                    return Card(
+                      child: ListTile(
+                        leading: Icon(Icons.mail_outline),
+                        title: Text(data['email'] ?? 'Không rõ người gửi'),
+                        subtitle: Text(
+                          'Lý do: ${data['reason'] ?? ''}\n'
+                              'Từ: ${data['fromDate']} → Đến: ${data['toDate']}',
+                        ),
+                        isThreeLine: true,
+                        trailing: Icon(Icons.pending_actions),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
-
-
-  void _navigateToLeaveApproval(BuildContext context) {
-    // Navigate to leave approval screen
-    Navigator.pushNamed(context, '/leave_approval');
-  }
 }
+

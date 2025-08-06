@@ -132,7 +132,7 @@ class HomeScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('iPhone 15', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Text('', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     SizedBox(height: 8),
                     Container(
                       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -140,7 +140,7 @@ class HomeScreen extends StatelessWidget {
                         color: Colors.red,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: Text('Mua ngay', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      child: Text('', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
                   ],
                 ),
@@ -203,7 +203,6 @@ class HomeScreen extends StatelessWidget {
                   color: Colors.grey[800],
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text('Section 1', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
               ),
               Icon(Icons.chevron_right, color: Colors.grey[600]),
             ],

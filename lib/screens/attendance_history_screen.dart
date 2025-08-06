@@ -99,7 +99,9 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                   StreamBuilder<QuerySnapshot>(
                     stream: FirebaseFirestore.instance
                         .collection('checkins')
-                        .where('uid', isEqualTo: user?.uid) // lọc theo UID
+                        .where('email', isEqualTo: user?.email) // lọc theo email người dùng
+                        .orderBy('timestamp', descending: true) // sắp xếp mới nhất trước
+                        .limit(20) // giới hạn 20 bản ghi mới nhất
                         .snapshots(),
 
                     builder: (context, snapshot) {

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ManagerAttendanceScreen extends StatefulWidget {
-  final String managerId;
+  final String department;
 
-  const ManagerAttendanceScreen({required this.managerId, super.key});
+  const ManagerAttendanceScreen({required this.department, super.key});
 
   @override
   State<ManagerAttendanceScreen> createState() => _ManagerAttendanceScreenState();
@@ -28,7 +28,7 @@ class _ManagerAttendanceScreenState extends State<ManagerAttendanceScreen> {
 
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
-          .where('managerId', isEqualTo: widget.managerId)
+          .where('department', isEqualTo: widget.department)
           .get();
 
       setState(() {
@@ -52,7 +52,7 @@ class _ManagerAttendanceScreenState extends State<ManagerAttendanceScreen> {
 
       // Kiểm tra xem đã chấm công hôm nay chưa
       final existingAttendance = await FirebaseFirestore.instance
-          .collection('attendances')
+          .collection('checkins')
           .where('uid', isEqualTo: uid)
           .where('date', isEqualTo: dateStr)
           .get();
@@ -64,13 +64,13 @@ class _ManagerAttendanceScreenState extends State<ManagerAttendanceScreen> {
         return;
       }
 
-      await FirebaseFirestore.instance.collection('attendances').add({
+      await FirebaseFirestore.instance.collection('checkins').add({
         'uid': uid,
         'employeeName': name,
         'checkIn': Timestamp.fromDate(today),
         'date': dateStr,
         'status': 'present',
-        'markedBy': widget.managerId,
+        'markedBy': widget.department,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(

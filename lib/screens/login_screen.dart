@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Thêm import này
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -47,7 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      final userData = query.docs.first.data();
+      final userDoc = query.docs.first; // Lấy document
+      final userData = userDoc.data();
       final savedPassword = userData['password'];
 
       if (savedPassword != password) {
@@ -58,6 +60,15 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
+      // LUU USERID VÀO SHAREDPREFERENCES
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', userDoc.id); // Lưu document ID
+      await prefs.setString('userName', userData['name'] ?? ''); // Lưu thêm name nếu muốn
+      await prefs.setString('userRole', userData['role'] ?? ''); // Lưu thêm role nếu muốn
+
+      print('DEBUG: Saved userId to SharedPreferences: ${userDoc.id}'); // Debug log
+
+      // Điều hướng dựa trên role
       final role = userData['role'];
       if (role == 'admin') {
         Navigator.pushReplacementNamed(context, '/admin');
@@ -67,6 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
+      print('DEBUG: Login error: $e'); // Debug log
       setState(() {
         _error = 'Đã xảy ra lỗi. Vui lòng thử lại.';
       });
