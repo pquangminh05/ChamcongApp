@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EmployeeListScreen extends StatefulWidget {
-  final String department;
+  final String departmentId;
 
-  const EmployeeListScreen({Key? key, required this.department}) : super(key: key);
+  const EmployeeListScreen({Key? key, required this.departmentId}) : super(key: key);
 
   @override
   _EmployeeListScreenState createState() => _EmployeeListScreenState();
@@ -15,6 +15,14 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('DEBUG: Received departmentId: ${widget.departmentId}');
+    if (widget.departmentId.isEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Text('Vui lòng chọn phòng ban hợp lệ.'),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.blueGrey[600],
       appBar: AppBar(
@@ -99,7 +107,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                       stream: FirebaseFirestore.instance
                           .collection('users')
                           .where('role', isEqualTo: 'employee')
-                          .where('department', isEqualTo: widget.department)
+                          .where('departmentId', isEqualTo: widget.departmentId)
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
@@ -108,6 +116,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                               child: CircularProgressIndicator());
                         }
                         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          print('DEBUG: No data or empty for departmentId: ${widget.departmentId}');
+                          print('DEBUG: Query snapshot data: ${snapshot.data?.docs.map((doc) => doc.data()).toList()}');
                           return const Center(
                               child: Text('Không có nhân viên nào.'));
                         }
@@ -118,6 +128,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         emp.name.toLowerCase().contains(searchQuery) ||
                             emp.email.toLowerCase().contains(searchQuery))
                             .toList();
+                        print('DEBUG: Found ${employees.length} employees with departmentId: ${widget.departmentId}');
 
                         if (employees.isEmpty) {
                           return const Center(
@@ -198,31 +209,30 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   }
 }
 
-// ====================== Models & Detail screen =====================
-
 class EmployeeInfo {
   final String id;
   final String name;
   final String role;
   final String email;
-  final String departmentl;
+  final String? departmentId;
 
   EmployeeInfo({
     required this.id,
     required this.name,
     required this.role,
     required this.email,
-    required this.departmentl,
+    this.departmentId,
   });
 
   factory EmployeeInfo.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+    print('DEBUG: Document data: $data');
     return EmployeeInfo(
       id: doc.id,
       name: data['name'] ?? '',
       role: data['role'] ?? '',
       email: data['email'] ?? '',
-      departmentl: data['department'] ?? '',
+      departmentId: data['departmentId'],
     );
   }
 }
@@ -328,21 +338,46 @@ class EmployeeDetailScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            'Phòng ban: ${employee.departmentl}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[700],
-                            ),
+                          FutureBuilder<DocumentSnapshot>(
+                            future: FirebaseFirestore.instance
+                                .collection('departments')
+                                .doc(employee.departmentId)
+                                .get(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return Text(
+                                  'Phòng ban: Đang tải...',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[700],
+                                  ),
+                                );
+                              }
+                              if (!snapshot.hasData || !snapshot.data!.exists) {
+                                return Text(
+                                  'Phòng ban: Không xác định',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[700],
+                                  ),
+                                );
+                              }
+                              final deptData = snapshot.data!.data() as Map<String, dynamic>?;
+                              return Text(
+                                'Phòng ban: ${deptData?['name'] ?? employee.departmentId}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[700],
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
                     ),
                     const Spacer(),
                     Row(
-                      children: [
-
-                      ],
+                      children: [],
                     ),
                   ],
                 ),
@@ -355,4 +390,3 @@ class EmployeeDetailScreen extends StatelessWidget {
     );
   }
 }
-

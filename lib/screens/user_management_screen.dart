@@ -20,8 +20,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             CircleAvatar(
               backgroundColor: Colors.red,
               radius: 16,
@@ -157,18 +157,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  // ========== THÊM NGƯỜI DÙNG ==========
   void _addNewUser() {
+    String name = '';
+    String email = '';
+    String password = '';
+    String role = 'employee';
+    String? departmentId;
+    bool isLoading = false;
+    String? errorText;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        String name = '';
-        String email = '';
-        String password = '';
-        String role = 'employee';
-        bool isLoading = false;
-        String? errorText;
-
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
@@ -178,8 +178,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
-                      decoration:
-                      const InputDecoration(labelText: 'Tên người dùng'),
+                      decoration: const InputDecoration(labelText: 'Tên người dùng'),
                       onChanged: (value) => name = value,
                     ),
                     const SizedBox(height: 12),
@@ -190,28 +189,57 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     const SizedBox(height: 12),
                     TextField(
                       obscureText: true,
-                      decoration:
-                      const InputDecoration(labelText: 'Mật khẩu'),
+                      decoration: const InputDecoration(labelText: 'Mật khẩu'),
                       onChanged: (value) => password = value,
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: role,
-                      decoration:
-                      const InputDecoration(labelText: 'Vai trò'),
+                      decoration: const InputDecoration(labelText: 'Vai trò'),
                       items: ['admin', 'manager', 'employee']
-                          .map((r) => DropdownMenuItem(
-                          value: r, child: Text(r)))
+                          .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                           .toList(),
                       onChanged: (value) => setState(() {
                         role = value!;
                       }),
                     ),
+                    const SizedBox(height: 12),
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance.collection('departments').snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        }
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return const Text('Không có phòng ban.');
+                        }
+                        final departments = snapshot.data!.docs.map((doc) => doc.id).toList();
+                        return DropdownButtonFormField<String>(
+                          value: departmentId,
+                          hint: const Text('Chọn phòng ban'),
+                          decoration: const InputDecoration(labelText: 'Phòng ban'),
+                          items: departments.map((deptId) => DropdownMenuItem(
+                            value: deptId,
+                            child: FutureBuilder<DocumentSnapshot>(
+                              future: FirebaseFirestore.instance.collection('departments').doc(deptId).get(),
+                              builder: (context, deptSnapshot) {
+                                if (deptSnapshot.connectionState == ConnectionState.waiting) {
+                                  return const Text('Đang tải...');
+                                }
+                                final deptData = deptSnapshot.data!.data() as Map<String, dynamic>?;
+                                return Text(deptData?['name'] ?? deptId);
+                              },
+                            ),
+                          )).toList(),
+                          onChanged: (value) => setState(() {
+                            departmentId = value;
+                          }),
+                        );
+                      },
+                    ),
                     if (errorText != null) ...[
                       const SizedBox(height: 8),
-                      Text(errorText!,
-                          style:
-                          const TextStyle(color: Colors.red, fontSize: 13)),
+                      Text(errorText!, style: const TextStyle(color: Colors.red, fontSize: 13)),
                     ]
                   ],
                 ),
@@ -221,9 +249,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Hủy')),
                 ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
+                  onPressed: isLoading ? null : () async {
                     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
                     if (name.isEmpty || email.isEmpty || password.isEmpty) {
                       setState(() {
@@ -238,14 +264,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                       return;
                     }
 
-
                     setState(() {
                       isLoading = true;
                       errorText = null;
                     });
 
                     try {
-                      // Kiểm tra email trùng
                       final check = await FirebaseFirestore.instance
                           .collection('users')
                           .where('email', isEqualTo: email)
@@ -266,13 +290,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         'role': role,
                         'email': email,
                         'password': password,
+                        'departmentId': departmentId,
                       });
 
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content:
-                            Text('Đã thêm người dùng mới!')),
+                        const SnackBar(content: Text('Đã thêm người dùng mới!')),
                       );
                     } catch (e) {
                       setState(() {
@@ -303,7 +326,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  // ========== ACTION SHEET ==========
   void _showUserActions(UserInfo user) {
     showModalBottomSheet(
       context: context,
@@ -341,18 +363,18 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  // ========== SỬA NGƯỜI DÙNG ==========
   void _editUser(UserInfo user) {
+    String name = user.name;
+    String email = user.email;
+    String password = user.password;
+    String role = user.role;
+    String? departmentId = user.departmentId;
+    bool isLoading = false;
+    String? errorText;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        String name = user.name;
-        String email = user.email;
-        String password = user.password;
-        String role = user.role;
-        bool isLoading = false;
-        String? errorText;
-
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
@@ -362,8 +384,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                   children: [
                     TextField(
                       controller: TextEditingController(text: name),
-                      decoration:
-                      const InputDecoration(labelText: 'Tên người dùng'),
+                      decoration: const InputDecoration(labelText: 'Tên người dùng'),
                       onChanged: (value) => name = value,
                     ),
                     const SizedBox(height: 12),
@@ -376,28 +397,57 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     TextField(
                       controller: TextEditingController(text: password),
                       obscureText: true,
-                      decoration:
-                      const InputDecoration(labelText: 'Mật khẩu'),
+                      decoration: const InputDecoration(labelText: 'Mật khẩu'),
                       onChanged: (value) => password = value,
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
                       value: role,
-                      decoration:
-                      const InputDecoration(labelText: 'Vai trò'),
+                      decoration: const InputDecoration(labelText: 'Vai trò'),
                       items: ['admin', 'manager', 'employee']
-                          .map((r) => DropdownMenuItem(
-                          value: r, child: Text(r)))
+                          .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                           .toList(),
                       onChanged: (value) => setState(() {
                         role = value!;
                       }),
                     ),
+                    const SizedBox(height: 12),
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance.collection('departments').snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        }
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return const Text('Không có phòng ban.');
+                        }
+                        final departments = snapshot.data!.docs.map((doc) => doc.id).toList();
+                        return DropdownButtonFormField<String>(
+                          value: departmentId,
+                          hint: const Text('Chọn phòng ban'),
+                          decoration: const InputDecoration(labelText: 'Phòng ban'),
+                          items: departments.map((deptId) => DropdownMenuItem(
+                            value: deptId,
+                            child: FutureBuilder<DocumentSnapshot>(
+                              future: FirebaseFirestore.instance.collection('departments').doc(deptId).get(),
+                              builder: (context, deptSnapshot) {
+                                if (deptSnapshot.connectionState == ConnectionState.waiting) {
+                                  return const Text('Đang tải...');
+                                }
+                                final deptData = deptSnapshot.data!.data() as Map<String, dynamic>?;
+                                return Text(deptData?['name'] ?? deptId);
+                              },
+                            ),
+                          )).toList(),
+                          onChanged: (value) => setState(() {
+                            departmentId = value;
+                          }),
+                        );
+                      },
+                    ),
                     if (errorText != null) ...[
                       const SizedBox(height: 8),
-                      Text(errorText!,
-                          style:
-                          const TextStyle(color: Colors.red, fontSize: 13)),
+                      Text(errorText!, style: const TextStyle(color: Colors.red, fontSize: 13)),
                     ]
                   ],
                 ),
@@ -407,9 +457,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     onPressed: () => Navigator.pop(context),
                     child: const Text('Hủy')),
                 ElevatedButton(
-                  onPressed: isLoading
-                      ? null
-                      : () async {
+                  onPressed: isLoading ? null : () async {
                     final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
                     if (name.isEmpty || email.isEmpty || password.isEmpty) {
                       setState(() {
@@ -438,12 +486,12 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         'email': email,
                         'password': password,
                         'role': role,
+                        'departmentId': departmentId,
                       });
 
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Đã cập nhật người dùng!')),
+                        const SnackBar(content: Text('Đã cập nhật người dùng!')),
                       );
                     } catch (e) {
                       setState(() {
@@ -474,7 +522,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     );
   }
 
-  // ========== XÓA NGƯỜI DÙNG ==========
   void _deleteUser(UserInfo user) async {
     if (user.id.isNotEmpty) {
       await FirebaseFirestore.instance
@@ -486,7 +533,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  // ========== ĐỔI QUYỀN ==========
   void _changeUserRole(UserInfo user) {
     String newRole = user.role;
     showDialog(
@@ -501,8 +547,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     ? newRole
                     : null,
                 items: ['admin', 'manager', 'employee']
-                    .map((r) =>
-                    DropdownMenuItem(value: r, child: Text(r)))
+                    .map((r) => DropdownMenuItem(value: r, child: Text(r)))
                     .toList(),
                 onChanged: (value) => setState(() {
                   newRole = value!;
@@ -537,13 +582,13 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   }
 }
 
-// Model
 class UserInfo {
   final String id;
   final String name;
   final String role;
   final String email;
   final String password;
+  final String? departmentId;
 
   UserInfo({
     required this.id,
@@ -551,6 +596,7 @@ class UserInfo {
     required this.role,
     required this.email,
     required this.password,
+    this.departmentId,
   });
 
   factory UserInfo.fromFirestore(DocumentSnapshot doc) {
@@ -561,6 +607,7 @@ class UserInfo {
       role: data['role'] ?? '',
       email: data['email'] ?? '',
       password: data['password'] ?? '',
+      departmentId: data['departmentId'],
     );
   }
 }

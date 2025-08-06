@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/services.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
-import 'screens/register_screen.dart';
 import 'screens/employee_screen.dart';
 import 'screens/attendance_history_screen.dart';
 import 'screens/employee_info_screen.dart';
@@ -42,7 +41,6 @@ class MyApp extends StatelessWidget {
         initialRoute: '/login',
         routes: {
           '/login': (_) => const LoginScreen(),
-          '/register': (_) => const RegisterScreen(),
           '/home': (_) => const HomeScreen(),
           '/attendance_history': (_) => const AttendanceHistoryScreen(),
           '/employee_info': (_) => const EmployeeInfoScreen(),
@@ -52,9 +50,13 @@ class MyApp extends StatelessWidget {
           '/user_management': (context) => const UserManagementScreen(),
           '/manager': (context) => const ManagerScreen(),
           '/department_management': (context) => const DepartmentManagementScreen(),
-          '/employee_list': (context) => const EmployeeListScreen(department: '',),
+          '/employee_list': (context) {
+            final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+            final departmentId = args?['departmentId'] ?? '';
+            return EmployeeListScreen(departmentId: departmentId);
+          },
           '/leave_approval': (context) => const LeaveApprovalScreen(),
-          '/manager_attendance':(context) => const ManagerAttendanceScreen(department: '',),
+          '/manager_attendance':(context) => const ManagerAttendanceScreen(departmentId: '',),
         }
 
     );

@@ -1,16 +1,41 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'manager_attendance_screen.dart';
 
 class ManagerScreen extends StatelessWidget {
   const ManagerScreen({Key? key}) : super(key: key);
 
+  Future<String?> _getDepartmentId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId'); // Lấy userId từ SharedPreferences
+    if (userId == null) {
+      print('DEBUG: No userId found in SharedPreferences.');
+      return null;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      if (!doc.exists) {
+        print('DEBUG: User document does not exist for UID: $userId');
+        return null;
+      }
+      final departmentId = doc.data()?['departmentId'] as String?;
+      print('DEBUG: Fetched departmentId: $departmentId');
+      return departmentId;
+    } catch (e) {
+      print('DEBUG: Error fetching departmentId: $e');
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
       backgroundColor: Colors.blueGrey[600],
       appBar: AppBar(
@@ -62,8 +87,6 @@ class ManagerScreen extends StatelessWidget {
       body: Column(
         children: [
           SizedBox(height: 30),
-
-          // Container chính chứa các chức năng quản lý
           Expanded(
             child: Container(
               margin: EdgeInsets.symmetric(horizontal: 20),
@@ -82,15 +105,26 @@ class ManagerScreen extends StatelessWidget {
               child: Column(
                 children: [
                   SizedBox(height: 40),
-
-                  // Row đầu tiên với 2 chức năng
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       _buildManagementMenuItem(
                         icon: Icons.group,
                         label: 'Danh sách\nnhân viên',
-                        onTap: () => _navigateToEmployeeList(context),
+                        onTap: () async {
+                          final departmentId = await _getDepartmentId();
+                          if (departmentId == null || departmentId.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Không tìm thấy phòng ban. Vui lòng kiểm tra dữ liệu.')),
+                            );
+                            return;
+                          }
+                          Navigator.pushNamed(
+                            context,
+                            '/employee_list',
+                            arguments: {'departmentId': departmentId},
+                          );
+                        },
                       ),
                       _buildManagementMenuItem(
                         icon: Icons.schedule,
@@ -99,10 +133,7 @@ class ManagerScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   SizedBox(height: 50),
-
-                  // Duyệt đơn nghỉ
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -113,10 +144,7 @@ class ManagerScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   Spacer(),
-
-                  // Nút đăng xuất
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -149,13 +177,11 @@ class ManagerScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   SizedBox(height: 30),
                 ],
               ),
             ),
           ),
-
           SizedBox(height: 30),
         ],
       ),
@@ -216,10 +242,6 @@ class ManagerScreen extends StatelessWidget {
     );
   }
 
-  void _navigateToEmployeeList(BuildContext context) {
-    Navigator.pushNamed(context, '/employee_list');
-  }
-
   void _navigateToAttendance(BuildContext context) {
     Navigator.pushNamed(context, '/manager_attendance');
   }
@@ -227,7 +249,7 @@ class ManagerScreen extends StatelessWidget {
   void _navigateToLeaveApproval(BuildContext context) {
     Navigator.pushNamed(context, '/leave_approval');
   }
-  //Chức năng hiển thị thông báo đơn xin nghỉ phép
+
   Widget _buildLeaveRequestNotificationSheet() {
     return Container(
       height: 400,
@@ -244,7 +266,7 @@ class ManagerScreen extends StatelessWidget {
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('leave_requests')
-                  .where('status', isEqualTo: 'pending') // Chỉ lấy đơn chưa duyệt
+                  .where('status', isEqualTo: 'pending')
                   .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
@@ -283,4 +305,3 @@ class ManagerScreen extends StatelessWidget {
     );
   }
 }
-

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LeaveRequestScreen extends StatefulWidget {
   const LeaveRequestScreen({Key? key}) : super(key: key);
@@ -22,8 +22,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -33,24 +31,32 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           icon: Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.red,
-              radius: 16,
-              child: Icon(Icons.person, color: Colors.white, size: 16),
-            ),
-            SizedBox(width: 12),
-            Text(
-              _getDisplayName(user),
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Icon(Icons.keyboard_arrow_down, color: Colors.black),
-          ],
+        title: FutureBuilder<String>(
+          future: _getDisplayName(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Text('Đang tải...');
+            }
+            return Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.red,
+                  radius: 16,
+                  child: Icon(Icons.person, color: Colors.white, size: 16),
+                ),
+                SizedBox(width: 12),
+                Text(
+                  snapshot.data ?? 'Người dùng',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Icon(Icons.keyboard_arrow_down, color: Colors.black),
+              ],
+            );
+          },
         ),
         actions: [
           IconButton(
@@ -68,7 +74,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           IconButton(
             icon: Icon(Icons.logout, color: Colors.black),
             onPressed: () async {
-              await FirebaseAuth.instance.signOut();
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.clear(); // Xóa SharedPreferences
               Navigator.pushReplacementNamed(context, '/login');
             },
           ),
@@ -329,7 +336,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     }
   }
 
-  void _submitLeaveRequest() async {
+  Future<void> _submitLeaveRequest() async {
     if (_reasonController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Vui lòng nhập lý do xin nghỉ')),
@@ -344,8 +351,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
+    final userEmail = prefs.getString('userEmail');
+    final userName= prefs.getString('userName');
+
+    if (userId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Không tìm thấy thông tin người dùng')),
       );
@@ -354,9 +365,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
     try {
       await FirebaseFirestore.instance.collection('leave_requests').add({
-        'userId': user.uid,
-        'displayName': user.displayName ?? '',
-        'email': user.email ?? '',
+        'userId': userId,
+        'userName':userName,
+        'email': userEmail,
         'reason': _reasonController.text.trim(),
         'startDate': _startDate,
         'endDate': _endDate,
@@ -378,28 +389,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     }
   }
 
-  String _getDisplayName(User? user) {
-    if (user == null) return 'Người dùng';
-
-    if (user.displayName != null && user.displayName!.isNotEmpty) {
-      String fullName = user.displayName!;
-      if (fullName.length > 10) {
-        return '${fullName.substring(0, 8)}...';
-      }
-      return fullName;
+  Future<String> _getDisplayName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userName = prefs.getString('userName');
+    if (userName != null && userName.isNotEmpty) {
+      return userName.length > 10 ? '${userName.substring(0, 8)}...' : userName;
     }
-
-    if (user.email != null && user.email!.isNotEmpty) {
-      String emailName = user.email!.split('@')[0];
-      if (emailName.isNotEmpty) {
-        String displayName = emailName[0].toUpperCase() + emailName.substring(1).toLowerCase();
-        if (displayName.length > 10) {
-          return '${displayName.substring(0, 8)}...';
-        }
-        return displayName;
-      }
-    }
-
     return 'Người dùng';
   }
 }

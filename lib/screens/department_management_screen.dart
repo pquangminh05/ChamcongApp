@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DepartmentManagementScreen extends StatefulWidget {
   const DepartmentManagementScreen({Key? key}) : super(key: key);
@@ -9,140 +10,180 @@ class DepartmentManagementScreen extends StatefulWidget {
 }
 
 class _DepartmentManagementScreenState extends State<DepartmentManagementScreen> {
+  String? _userRole;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserRole();
+  }
+
+  Future<void> _loadUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _userRole = prefs.getString('userRole');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.blueGrey[600],
-      appBar: AppBar(
-        backgroundColor: Colors.blueGrey[700],
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+    if (_userRole != 'admin') {
+      return Scaffold(
+        body: Center(
+          child: Text('Bạn không có quyền truy cập trang này.'),
         ),
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Colors.red,
-              radius: 16,
-              child: Icon(Icons.person, color: Colors.white, size: 16),
-            ),
-            SizedBox(width: 12),
-            Text(
-              'ADMIN',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                stops: [0.3, 0.3, 0.7, 0.7],
+                colors: [
+                  Color(0xFF5C819C),
+                  Color(0xFFD1D8DE),
+                  Color(0xFFD1D8DE),
+                  Color(0xFF5C819C),
+                ],
               ),
             ),
-            Icon(Icons.keyboard_arrow_down, color: Colors.white),
-          ],
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.grid_3x3, color: Colors.white),
-            onPressed: () {},
           ),
-          IconButton(
-            icon: Icon(Icons.notifications_outlined, color: Colors.white),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: Icon(Icons.help_outline, color: Colors.white),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          SizedBox(height: 30),
-          Expanded(
-            child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: Offset(0, 5),
+          Column(
+            children: [
+              AppBar(
+                backgroundColor: Colors.blueGrey[700],
+                elevation: 0,
+                leading: IconButton(
+                  icon: Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                title: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Colors.red,
+                      radius: 16,
+                      child: Icon(Icons.person, color: Colors.white, size: 16),
+                    ),
+                    SizedBox(width: 12),
+                    Text(
+                      'ADMIN',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Icon(Icons.keyboard_arrow_down, color: Colors.white),
+                  ],
+                ),
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.grid_3x3, color: Colors.white),
+                    onPressed: () {},
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.notifications_outlined, color: Colors.white),
+                    onPressed: () {},
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.help_outline, color: Colors.white),
+                    onPressed: () {},
                   ),
                 ],
               ),
-              child: Column(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(20),
-                    child: Text(
-                      'Quản lý phòng ban',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+              Expanded(
+                child: Container(
+                  margin: EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: Offset(0, 5),
                       ),
-                    ),
+                    ],
                   ),
-                  Expanded(
-                    child: StreamBuilder<QuerySnapshot>(
-                      stream: FirebaseFirestore.instance.collection('departments').snapshots(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return const Center(child: Text('Không có phòng ban nào.'));
-                        }
-
-                        final departments = snapshot.data!.docs.map((doc) {
-                          return DepartmentInfo.fromFirestore(doc);
-                        }).toList();
-
-                        return ListView.separated(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          itemCount: departments.length,
-                          separatorBuilder: (context, index) => Divider(
-                            height: 1,
-                            color: Colors.grey[300],
-                          ),
-                          itemBuilder: (context, index) => _buildDepartmentItem(departments[index]),
-                        );
-                      },
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(20),
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: GestureDetector(
-                        onTap: _addNewDepartment,
-                        child: Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.add,
-                            color: Colors.white,
-                            size: 24,
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(20),
+                        child: Text(
+                          'Quản lý phòng ban',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                    ),
+                      Expanded(
+                        child: StreamBuilder<QuerySnapshot>(
+                          stream: FirebaseFirestore.instance.collection('departments').snapshots(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState == ConnectionState.waiting) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                              return const Center(child: Text('Không có phòng ban nào.'));
+                            }
+
+                            final departments = snapshot.data!.docs.map((doc) {
+                              return DepartmentInfo.fromFirestore(doc);
+                            }).toList();
+
+                            return ListView.separated(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              itemCount: departments.length,
+                              separatorBuilder: (context, index) => Divider(
+                                height: 1,
+                                color: Colors.grey[300],
+                              ),
+                              itemBuilder: (context, index) => _buildDepartmentItem(departments[index]),
+                            );
+                          },
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: GestureDetector(
+                            onTap: _addNewDepartment,
+                            child: Container(
+                              width: 50,
+                              height: 50,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[400],
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.add,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
-          SizedBox(height: 30),
         ],
       ),
     );
@@ -213,12 +254,13 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
   }
 
   void _addNewDepartment() {
+    String name = '';
+    String manager = '';
+    String status = 'Hoạt động';
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        String name = '';
-        String manager = '';
-        String status = 'Hoạt động';
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
@@ -400,7 +442,6 @@ class _DepartmentManagementScreenState extends State<DepartmentManagementScreen>
   }
 
   void _viewDepartmentEmployees(DepartmentInfo department) {
-    // Chức năng xem danh sách nhân viên trong phòng ban
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Xem nhân viên phòng ${department.name}')),
     );
