@@ -56,7 +56,11 @@ class MyApp extends StatelessWidget {
             return EmployeeListScreen(departmentId: departmentId);
           },
           '/leave_approval': (context) => const LeaveApprovalScreen(),
-          '/manager_attendance':(context) => const ManagerAttendanceScreen(departmentId: '',),
+          '/manager_attendance': (context) {
+            final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>?;
+            final departmentId = args?['departmentId'] ?? '';
+            return ManagerAttendanceScreen(departmentId: departmentId);
+          },
         }
 
     );

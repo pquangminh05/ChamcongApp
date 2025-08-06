@@ -242,8 +242,19 @@ class ManagerScreen extends StatelessWidget {
     );
   }
 
-  void _navigateToAttendance(BuildContext context) {
-    Navigator.pushNamed(context, '/manager_attendance');
+  void _navigateToAttendance(BuildContext context) async {
+    final departmentId = await _getDepartmentId();
+    if (departmentId == null || departmentId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Không tìm thấy phòng ban. Vui lòng kiểm tra dữ liệu.')),
+      );
+      return;
+    }
+    Navigator.pushNamed(
+      context,
+      '/manager_attendance',
+      arguments: {'departmentId': departmentId},
+    );
   }
 
   void _navigateToLeaveApproval(BuildContext context) {

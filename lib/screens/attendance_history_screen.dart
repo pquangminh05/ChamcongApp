@@ -407,11 +407,12 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
                                   Colors.purple,
                                 ),
                                 const SizedBox(height: 8),
+                                // Hiển thị Status hoặc IP tùy loại
                                 _buildInfoRow(
-                                  Icons.wifi,
-                                  'Địa chỉ IP',
+                                  record['isManual'] == true ? Icons.touch_app : Icons.wifi,
+                                  record['isManual'] == true ? 'Loại' : 'Địa chỉ IP',
                                   ip,
-                                  Colors.orange,
+                                  record['isManual'] == true ? Colors.green : Colors.orange,
                                 ),
                                 if (record['date'] != null && record['date'].toString().isNotEmpty) ...[
                                   const SizedBox(height: 8),
