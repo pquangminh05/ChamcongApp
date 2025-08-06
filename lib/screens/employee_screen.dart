@@ -2,8 +2,92 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  String displayName = 'Người dùng';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    print('🔍 Debug - Current user: ${user?.uid}');
+    print('🔍 Debug - User email: ${user?.email}');
+    print('🔍 Debug - User displayName: ${user?.displayName}');
+
+    if (user != null) {
+      try {
+        // Thử tìm theo uid trước
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        print('🔍 Debug - Doc exists by UID: ${userDoc.exists}');
+
+        if (!userDoc.exists) {
+          // Nếu không tìm thấy theo uid, thử tìm theo email
+          final querySnapshot = await FirebaseFirestore.instance
+              .collection('users')
+              .where('email', isEqualTo: user.email)
+              .limit(1)
+              .get();
+
+          print('🔍 Debug - Query by email found: ${querySnapshot.docs.length} docs');
+
+          if (querySnapshot.docs.isNotEmpty) {
+            userDoc = querySnapshot.docs.first;
+          }
+        }
+
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          print('🔍 Debug - Firestore data: $userData');
+
+          String name = userData['name'] ?? '';
+          print('🔍 Debug - Name from Firestore: "$name"');
+
+          setState(() {
+            displayName = name.isNotEmpty ? name : _getDisplayNameFromAuth(user);
+          });
+        } else {
+          print('🔍 Debug - No user doc found, using Auth data');
+          setState(() {
+            displayName = _getDisplayNameFromAuth(user);
+          });
+        }
+      } catch (e) {
+        print('🔍 Debug - Error loading user data: $e');
+        setState(() {
+          displayName = _getDisplayNameFromAuth(user);
+        });
+      }
+    } else {
+      print('🔍 Debug - No authenticated user');
+    }
+  }
+
+  String _getDisplayNameFromAuth(User user) {
+    if (user.displayName != null && user.displayName!.isNotEmpty) {
+      String fullName = user.displayName!;
+      return fullName.length > 10 ? '${fullName.substring(0, 8)}...' : fullName;
+    }
+    if (user.email != null && user.email!.isNotEmpty) {
+      String emailName = user.email!.split('@')[0];
+      String displayName = emailName[0].toUpperCase() + emailName.substring(1).toLowerCase();
+      return displayName.length > 10 ? '${displayName.substring(0, 8)}...' : displayName;
+    }
+    return 'Người dùng';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +105,7 @@ class HomeScreen extends StatelessWidget {
         title: Row(
           children: [
             Text(
-              _getDisplayName(user),
+              displayName,
               style: TextStyle(
                 color: Colors.black,
                 fontSize: 16,
@@ -158,9 +242,9 @@ class HomeScreen extends StatelessWidget {
               left: 20,
               bottom: 30,
               child: Container(
+                width: 200,
                 height: 40,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
+                child: Row(
                   children: [
                     _buildColorOption(Colors.grey[800]!),
                     _buildColorOption(Colors.blue[900]!),
@@ -282,7 +366,7 @@ class HomeScreen extends StatelessWidget {
             child: StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('notifications')
-                  .where('userId', isEqualTo: user?.uid) // 🔑 Lọc thông báo theo người dùng hiện tại
+                  .where('userId', isEqualTo: user?.uid)
                   .orderBy('timestamp', descending: true)
                   .snapshots(),
               builder: (context, snapshot) {
@@ -311,19 +395,5 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _getDisplayName(User? user) {
-    if (user == null) return 'Người dùng';
-    if (user.displayName != null && user.displayName!.isNotEmpty) {
-      String fullName = user.displayName!;
-      return fullName.length > 10 ? '${fullName.substring(0, 8)}...' : fullName;
-    }
-    if (user.email != null && user.email!.isNotEmpty) {
-      String emailName = user.email!.split('@')[0];
-      String displayName = emailName[0].toUpperCase() + emailName.substring(1).toLowerCase();
-      return displayName.length > 10 ? '${displayName.substring(0, 8)}...' : displayName;
-    }
-    return 'Người dùng';
   }
 }
