@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:intl/intl.dart';
 
@@ -17,14 +17,41 @@ class _CheckInScreenState extends State<CheckInScreen> {
   bool _loading = false;
   bool _hasCheckedIn = false;
   bool _hasCheckedOut = false;
+  String? _userId;
+  String? _userEmail;
 
   final String companyIpPrefix = '172.16.1.';
 
   @override
   void initState() {
     super.initState();
+    _getUserData();
     _getIp();
-    _checkTodayStatus();
+  }
+
+  Future<void> _getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString('userId');
+
+    if (_userId != null) {
+      // Lấy email từ Firestore dựa trên userId
+      try {
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_userId!)
+            .get();
+
+        if (userDoc.exists) {
+          _userEmail = userDoc.data()?['email'];
+        }
+      } catch (e) {
+        print('Error getting user data: $e');
+      }
+    }
+
+    if (_userId != null) {
+      _checkTodayStatus();
+    }
   }
 
   Future<void> _getIp() async {
@@ -36,14 +63,13 @@ class _CheckInScreenState extends State<CheckInScreen> {
   }
 
   Future<void> _checkTodayStatus() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
+    if (_userId == null) return;
 
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     final query = await FirebaseFirestore.instance
         .collection('checkins')
-        .where('uid', isEqualTo: user.uid)
+        .where('uid', isEqualTo: _userId)
         .where('date', isEqualTo: today)
         .get();
 
@@ -60,6 +86,13 @@ class _CheckInScreenState extends State<CheckInScreen> {
   }
 
   Future<void> _submitCheck(String type) async {
+    if (_userId == null) {
+      setState(() {
+        _status = 'Lỗi: Không tìm thấy thông tin người dùng!';
+      });
+      return;
+    }
+
     if (_ip == null || !_ip!.startsWith(companyIpPrefix)) {
       setState(() {
         _status = 'Bạn không kết nối đúng wifi công ty!';
@@ -67,7 +100,6 @@ class _CheckInScreenState extends State<CheckInScreen> {
       return;
     }
 
-    final user = FirebaseAuth.instance.currentUser;
     final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
     if (type == 'checkin' && _hasCheckedIn) {
@@ -93,8 +125,8 @@ class _CheckInScreenState extends State<CheckInScreen> {
 
     try {
       await FirebaseFirestore.instance.collection('checkins').add({
-        'uid': user?.uid,
-        'email': user?.email,
+        'uid': _userId,
+        'email': _userEmail,
         'ip': _ip,
         'timestamp': FieldValue.serverTimestamp(),
         'type': type,
@@ -107,7 +139,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
           : 'Thực hiện check out cho ngày $today thành công';
 
       await FirebaseFirestore.instance.collection('notifications').add({
-        'uid': user?.uid,
+        'uid': _userId,
         'type': 'checkin',
         'message': message,
         'timestamp': FieldValue.serverTimestamp(),
@@ -125,6 +157,7 @@ class _CheckInScreenState extends State<CheckInScreen> {
       setState(() {
         _status = 'Lỗi khi chấm công!';
       });
+      print('Error submitting check: $e');
     } finally {
       setState(() {
         _loading = false;
